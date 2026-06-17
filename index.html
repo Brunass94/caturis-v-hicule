@@ -1065,7 +1065,11 @@
 // =====================
 // FIREBASE CONFIG
 // =====================
-const firebaseConfig = { databaseURL: "https://cauris-943a8-default-rtdb.firebaseio.com" };
+const firebaseConfig = { 
+  databaseURL: "https://cauris-943a8-default-rtdb.firebaseio.com",
+  projectId: "cauris-943a8",
+  appId: "cauris"
+};
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const vehiclesRef = db.ref('vehicles');
@@ -1084,18 +1088,32 @@ let facingMode = 'environment';
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('e-date').value = new Date().toISOString().split('T')[0];
 
+  // Timeout de secours si Firebase ne répond pas
+  const loadingTimeout = setTimeout(() => {
+    document.getElementById('loading').style.display = 'none';
+    setSyncStatus(false);
+    renderAll();
+  }, 5000);
+
   vehiclesRef.on('value', snap => {
+    clearTimeout(loadingTimeout);
     vehicles = snap.val() || {};
     renderAll();
     document.getElementById('loading').style.display = 'none';
     setSyncStatus(true);
-  }, () => { setSyncStatus(false); document.getElementById('loading').style.display = 'none'; });
+  }, (error) => { 
+    clearTimeout(loadingTimeout);
+    console.error('Firebase error:', error);
+    setSyncStatus(false); 
+    document.getElementById('loading').style.display = 'none';
+    renderAll();
+  });
 
   eventsRef.on('value', snap => {
     events = snap.val() || {};
     renderHistorique();
     renderRapport();
-  });
+  }, (error) => { console.error('Events error:', error); });
 });
 
 function setSyncStatus(online) {
